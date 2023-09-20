@@ -1,3 +1,6 @@
+// https://en.wikipedia.org/wiki/Transmission_Control_Protocol
+// https://www.ibm.com/docs/en/zos/2.1.0?topic=SSLTBW_2.1.0/com.ibm.zos.v2r1.halu101/constatus.htm
+
 package main
 
 import (
