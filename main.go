@@ -46,11 +46,17 @@ func server() {
 
 		channel <- newSynAckPacket(seq, p.seq+1)
 
-		p = <-channel
+		// Awaits final Synchronize acknowledgement acknowledgement
+		select {
+		case p = <-channel:
+			if seq+1 != p.ack {
+				fmt.Println("Connection failed!")
+				continue
+			}
+		case <-time.After(3 * time.Second):
+			fmt.Println("Connection Timeout")
+			continue
 
-		if seq+1 != p.ack {
-			fmt.Println("Connection failed!")
-			return
 		}
 
 		fmt.Println("Connection succes!")
@@ -60,7 +66,7 @@ func server() {
 func main() {
 	go client()
 	go server()
-	wait.Add(2)
+	wait.Add(1)
 
 	wait.Wait()
 }
