@@ -12,30 +12,35 @@ var channel = make(chan *packet)
 func client() {
 	defer wait.Done()
 
-	// Sends a Synchronize request
+	// Generate random sequence number
 	seq := randomNumber()
 	fmt.Println("Client sequence:", seq)
 
-	channel <- newSynPacket(seq)
+	// Send SYN packet
+	channel <- SynPacket(seq)
 
-	// Awaits Acknowledgement
+	// Wait for acknowledgement
 	select {
 	case p := <-channel:
-		// Recieved Acknowledgement
+		// Recieved acknowledgement
+
+		// Check if acknowledgement matches sequence number
 		if seq+1 != p.ack {
 			fmt.Println("Connection failed!")
 			return
 		}
 
-		channel <- newAckDataPacket(p.seq+1, "Hello World!")
+		// Send ACK packet
+		channel <- AckDataPacket(p.seq+1, "Hello World!")
 	case <-time.After(3 * time.Second):
+		// Timeout
+
 		fmt.Println("Connection Timeout")
 		return
 	}
 }
 
 func server() {
-
 	for {
 		// Passive listening
 		p := <-channel
@@ -44,7 +49,7 @@ func server() {
 		seq := randomNumber()
 		fmt.Println("Server sequence:", seq)
 
-		channel <- newSynAckPacket(seq, p.seq+1)
+		channel <- SynAckPacket(seq, p.seq+1)
 
 		p = <-channel
 

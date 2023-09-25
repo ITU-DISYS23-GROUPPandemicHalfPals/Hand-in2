@@ -10,7 +10,7 @@ type packet struct {
 	data string
 }
 
-func newSynPacket(seq int) *packet {
+func SynPacket(seq int) *packet {
 	p := packet{}
 	p.SYN = true
 	p.ACK = false
@@ -18,7 +18,7 @@ func newSynPacket(seq int) *packet {
 	return &p
 }
 
-func newSynAckPacket(seq int, ack int) *packet {
+func SynAckPacket(seq int, ack int) *packet {
 	p := packet{}
 	p.SYN = true
 	p.ACK = false
@@ -27,7 +27,7 @@ func newSynAckPacket(seq int, ack int) *packet {
 	return &p
 }
 
-func newAckDataPacket(ack int, data string) *packet {
+func AckDataPacket(ack int, data string) *packet {
 	p := packet{}
 	p.SYN = false
 	p.ACK = true
