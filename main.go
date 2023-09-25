@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -10,10 +11,11 @@ var wait sync.WaitGroup
 var channel = make(chan *packet)
 
 func client() {
+	defer wait.Done()
 
 	// Generate random sequence number
 	seq := randomNumber()
-	fmt.Println("Client sequence:", seq)
+	fmt.Println("Client: seq=" + strconv.Itoa(seq))
 
 	// Send SYN packet
 	channel <- SynPacket(seq)
@@ -22,6 +24,7 @@ func client() {
 	select {
 	case p := <-channel:
 		// Recieved acknowledgement
+		fmt.Println("Client got: SYN+ACK seq=" + strconv.Itoa(p.seq) + " ack=" + strconv.Itoa(p.ack))
 
 		// Check if acknowledgement matches sequence number
 		if seq+1 != p.ack {
@@ -29,11 +32,10 @@ func client() {
 			return
 		}
 
-		// Send ACK packet
-		channel <- AckDataPacket(p.seq+1, "Hello World!")
+		// Send SYN+ACK packet
+		channel <- SynAckPacket(p.ack, p.seq+1)
 	case <-time.After(3 * time.Second):
 		// Timeout
-
 		fmt.Println("Client: Connection Timeout")
 		return
 	}
@@ -42,38 +44,44 @@ func client() {
 func server() {
 	defer wait.Done()
 
-	for {
-		// Passive listening
-		p := <-channel
+	// Generate random sequence number
+	seq := randomNumber()
+	fmt.Println("Server: seq=" + strconv.Itoa(seq))
 
-		// Recieved a Synchronize request
-		seq := randomNumber()
-		fmt.Println("Server sequence:", seq)
+	// Listens for SYN packet
+	p := <-channel
 
-		channel <- SynAckPacket(seq, p.seq+1)
+	// Recieved SYN packet
+	fmt.Println("Server got: SYN seq=" + strconv.Itoa(p.seq))
 
-		// Awaits final Synchronize acknowledgement acknowledgement
-		select {
-		case p = <-channel:
-			if seq+1 != p.ack {
-				fmt.Println("Server: Connection failed!")
-				continue
-			}
-		case <-time.After(3 * time.Second):
-			fmt.Println("Server: Connection Timeout")
-			continue
+	// Send SYN+ACK packet
+	channel <- SynAckPacket(seq, p.seq+1)
 
+	// Wait for acknowledgement
+	select {
+	case p = <-channel:
+		// Recieved acknowledgement
+		fmt.Println("Server got: SYN+ACK seq=" + strconv.Itoa(p.seq) + " ack=" + strconv.Itoa(p.ack))
+
+		// Check if acknowledgement matches sequence number
+		if seq+1 != p.ack {
+			fmt.Println("Server: Connection failed!")
+			return
 		}
-
-		fmt.Println("Connection succes!")
+	case <-time.After(3 * time.Second):
+		// Timeout
+		fmt.Println("Server: Connection Timeout")
 		return
 	}
+
+	// 3-Way Handshake successful!
+	fmt.Println("Connection success!")
 }
 
 func main() {
 	go client()
 	go server()
-	wait.Add(1)
+	wait.Add(2)
 
 	wait.Wait()
 }
