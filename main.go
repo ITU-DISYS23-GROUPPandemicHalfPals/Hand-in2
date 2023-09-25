@@ -10,7 +10,6 @@ var wait sync.WaitGroup
 var channel = make(chan *packet)
 
 func client() {
-	defer wait.Done()
 
 	// Generate random sequence number
 	seq := randomNumber()
@@ -26,7 +25,7 @@ func client() {
 
 		// Check if acknowledgement matches sequence number
 		if seq+1 != p.ack {
-			fmt.Println("Connection failed!")
+			fmt.Println("Client: Connection failed!")
 			return
 		}
 
@@ -35,12 +34,14 @@ func client() {
 	case <-time.After(3 * time.Second):
 		// Timeout
 
-		fmt.Println("Connection Timeout")
+		fmt.Println("Client: Connection Timeout")
 		return
 	}
 }
 
 func server() {
+	defer wait.Done()
+
 	for {
 		// Passive listening
 		p := <-channel
@@ -51,21 +52,28 @@ func server() {
 
 		channel <- SynAckPacket(seq, p.seq+1)
 
-		p = <-channel
+		// Awaits final Synchronize acknowledgement acknowledgement
+		select {
+		case p = <-channel:
+			if seq+1 != p.ack {
+				fmt.Println("Server: Connection failed!")
+				continue
+			}
+		case <-time.After(3 * time.Second):
+			fmt.Println("Server: Connection Timeout")
+			continue
 
-		if seq+1 != p.ack {
-			fmt.Println("Connection failed!")
-			return
 		}
 
 		fmt.Println("Connection succes!")
+		return
 	}
 }
 
 func main() {
 	go client()
 	go server()
-	wait.Add(2)
+	wait.Add(1)
 
 	wait.Wait()
 }
