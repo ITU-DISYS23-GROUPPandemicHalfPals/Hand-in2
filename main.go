@@ -6,6 +6,7 @@ package main
 import (
 	"fmt"
 	"sync"
+	"time"
 )
 
 var wait sync.WaitGroup
@@ -36,38 +37,44 @@ func newPackage(seq int, ack int) *TCP {
 func client(ip int) {
 	defer wait.Done()
 
+	// Sends a Synchronize request
 	seq := randomNumber()
 	channel <- newPackage(seq, 0)
 
-	p := <-channel
+	// Awaits Acknowledgement
 
-	if seq+1 != p.ack {
-		fmt.Println("Connection failed!")
-		return
+	select {
+	case p := <-channel:
+		// Recieved Acknowledgement
+		if seq+1 != p.ack {
+			fmt.Println("Connection failed!")
+			return
+		}
+
+		channel <- newPackage(p.ack, p.seq+1)
+	case <-time.After(3 * time.Second):
+		fmt.Println("Connection Timeout")
 	}
 
-	channel <- newPackage(p.ack, p.seq+1)
-
-	for {
-
-	}
 }
 
 func server(ip int) {
-	defer wait.Done()
-
-	seq := randomNumber()
-	p := <-channel
-	channel <- newPackage(seq, p.seq+1)
-
-	p = <-channel
-
-	if seq+1 != p.ack {
-		fmt.Println("Connection failed!")
-		return
-	}
 
 	for {
+
+		// Passive listening
+		p := <-channel
+
+		// Recieved a Synchronize request
+		seq := randomNumber()
+		channel <- newPackage(seq, p.seq+1)
+
+		p = <-channel
+
+		if seq+1 != p.ack {
+			fmt.Println("Connection failed!")
+			return
+		}
 
 	}
 }
@@ -94,4 +101,5 @@ func main() {
 	wait.Add(1)
 
 	wait.Wait()
+	fmt.Println("Program ran successfully")
 }
