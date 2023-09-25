@@ -50,6 +50,7 @@ func client(ip int) {
 			fmt.Println("Connection failed!")
 			return
 		}
+		fmt.Println("Program ran successfully")
 
 		channel <- newPackage(p.ack, p.seq+1)
 	case <-time.After(3 * time.Second):
@@ -101,5 +102,4 @@ func main() {
 	wait.Add(1)
 
 	wait.Wait()
-	fmt.Println("Program ran successfully")
 }
