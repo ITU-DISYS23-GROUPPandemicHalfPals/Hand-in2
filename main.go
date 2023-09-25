@@ -19,7 +19,6 @@ func client() {
 	channel <- newSynPacket(seq)
 
 	// Awaits Acknowledgement
-
 	select {
 	case p := <-channel:
 		// Recieved Acknowledgement
@@ -27,28 +26,23 @@ func client() {
 			fmt.Println("Connection failed!")
 			return
 		}
-		fmt.Println("Program ran successfully")
 
-		channel <- newPackage(p.ack, p.seq+1)
+		channel <- newAckDataPacket(p.seq+1, "Hello World!")
 	case <-time.After(3 * time.Second):
 		fmt.Println("Connection Timeout")
+		return
 	}
-
-	channel <- newAckDataPacket(p.seq+1, "Hello World!")
-
-	fmt.Println("Connection succes!")
 }
 
 func server() {
 
 	for {
-
 		// Passive listening
 		p := <-channel
 
 		// Recieved a Synchronize request
 		seq := randomNumber()
-	fmt.Println("Server sequence:", seq)
+		fmt.Println("Server sequence:", seq)
 
 		channel <- newSynAckPacket(seq, p.seq+1)
 
@@ -59,25 +53,8 @@ func server() {
 			return
 		}
 
-	for {
-
+		fmt.Println("Connection succes!")
 	}
-}
-
-func listen() {
-
-}
-
-func connect() {
-
-}
-
-func close() {
-
-}
-
-func send() {
-
 }
 
 func main() {
