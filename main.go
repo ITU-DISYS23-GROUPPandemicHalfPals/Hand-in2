@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"strconv"
 	"sync"
 	"time"
@@ -10,11 +11,19 @@ import (
 var wait sync.WaitGroup
 var channel = make(chan *packet)
 
+func main() {
+	go client()
+	go server()
+	wait.Add(2)
+
+	wait.Wait()
+}
+
 func client() {
 	defer wait.Done()
 
-	// Generate random sequence number
-	seq := randomNumber()
+	// Generate random sequence number for the client
+	seq := rand.Intn(1000)
 	fmt.Println("Client: seq=" + strconv.Itoa(seq))
 
 	// Send SYN packet
@@ -39,19 +48,23 @@ func client() {
 		fmt.Println("Client: Connection Timeout")
 		return
 	}
+
+	// Send data packet
+	channel <- DataPacket(seq+2, "Hello, World!")
 }
 
 func server() {
 	defer wait.Done()
 
-	// Generate random sequence number
-	seq := randomNumber()
+	// Generate random sequence number for the server
+	seq := rand.Intn(1000)
 	fmt.Println("Server: seq=" + strconv.Itoa(seq))
 
-	// Listens for SYN packet
+	// Listen for SYN packet
 	p := <-channel
 
 	// Recieved SYN packet
+	fmt.Println()
 	fmt.Println("Server got: SYN seq=" + strconv.Itoa(p.seq))
 
 	// Send SYN+ACK packet
@@ -75,13 +88,43 @@ func server() {
 	}
 
 	// 3-Way Handshake successful!
-	fmt.Println("Connection success!")
+	fmt.Println("3-Way Handshake successful!")
+	fmt.Println()
+
+	// Listen for data packet
+	p = <-channel
+
+	// Recieved data packet
+	fmt.Println("Server got: seq=" + strconv.Itoa(p.seq) + " data=" + p.data)
 }
 
-func main() {
-	go client()
-	go server()
-	wait.Add(2)
+// Packet datastructure
+type packet struct {
+	seq int
+	ack int
 
-	wait.Wait()
+	data string
+}
+
+// To create SYN packet
+func SynPacket(seq int) *packet {
+	p := packet{}
+	p.seq = seq
+	return &p
+}
+
+// Function to create SYN+ACK packet
+func SynAckPacket(seq int, ack int) *packet {
+	p := packet{}
+	p.seq = seq
+	p.ack = ack
+	return &p
+}
+
+// Function to create data packet
+func DataPacket(seq int, data string) *packet {
+	p := packet{}
+	p.seq = seq
+	p.data = data
+	return &p
 }
