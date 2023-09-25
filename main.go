@@ -1,6 +1,3 @@
-// https://en.wikipedia.org/wiki/Transmission_Control_Protocol
-// https://www.ibm.com/docs/en/zos/2.1.0?topic=SSLTBW_2.1.0/com.ibm.zos.v2r1.halu101/constatus.htm
-
 package main
 
 import (
@@ -9,35 +6,15 @@ import (
 )
 
 var wait sync.WaitGroup
+var channel = make(chan *packet)
 
-var channel = make(chan *TCP)
-
-type TCP struct {
-	src int
-	dst int
-	seq int
-	ack int
-
-	SYN bool
-	RST bool
-	ACK bool
-	FIN bool
-
-	data string
-}
-
-func newPackage(seq int, ack int) *TCP {
-	p := TCP{}
-	p.seq = seq
-	p.ack = ack
-	return &p
-}
-
-func client(ip int) {
+func client() {
 	defer wait.Done()
 
 	seq := randomNumber()
-	channel <- newPackage(seq, 0)
+	fmt.Println("Client sequence:", seq)
+
+	channel <- newSynPacket(seq)
 
 	p := <-channel
 
@@ -46,19 +23,19 @@ func client(ip int) {
 		return
 	}
 
-	channel <- newPackage(p.ack, p.seq+1)
+	channel <- newAckDataPacket(p.seq+1, "Hello World!")
 
-	for {
-
-	}
+	fmt.Println("Connection succes!")
 }
 
-func server(ip int) {
+func server() {
 	defer wait.Done()
 
 	seq := randomNumber()
+	fmt.Println("Server sequence:", seq)
+
 	p := <-channel
-	channel <- newPackage(seq, p.seq+1)
+	channel <- newSynAckPacket(seq, p.seq+1)
 
 	p = <-channel
 
@@ -67,31 +44,13 @@ func server(ip int) {
 		return
 	}
 
-	for {
-
-	}
-}
-
-func listen() {
-
-}
-
-func connect() {
-
-}
-
-func close() {
-
-}
-
-func send() {
-
+	fmt.Println("Server recieved:", p.data)
 }
 
 func main() {
-	go client(1)
-	go server(2)
-	wait.Add(1)
+	go client()
+	go server()
+	wait.Add(2)
 
 	wait.Wait()
 }
