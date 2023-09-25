@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"sync"
+	"time"
 )
 
 var wait sync.WaitGroup
@@ -11,16 +12,26 @@ var channel = make(chan *packet)
 func client() {
 	defer wait.Done()
 
+	// Sends a Synchronize request
 	seq := randomNumber()
 	fmt.Println("Client sequence:", seq)
 
 	channel <- newSynPacket(seq)
 
-	p := <-channel
+	// Awaits Acknowledgement
 
-	if seq+1 != p.ack {
-		fmt.Println("Connection failed!")
-		return
+	select {
+	case p := <-channel:
+		// Recieved Acknowledgement
+		if seq+1 != p.ack {
+			fmt.Println("Connection failed!")
+			return
+		}
+		fmt.Println("Program ran successfully")
+
+		channel <- newPackage(p.ack, p.seq+1)
+	case <-time.After(3 * time.Second):
+		fmt.Println("Connection Timeout")
 	}
 
 	channel <- newAckDataPacket(p.seq+1, "Hello World!")
@@ -29,22 +40,44 @@ func client() {
 }
 
 func server() {
-	defer wait.Done()
 
-	seq := randomNumber()
+	for {
+
+		// Passive listening
+		p := <-channel
+
+		// Recieved a Synchronize request
+		seq := randomNumber()
 	fmt.Println("Server sequence:", seq)
 
-	p := <-channel
-	channel <- newSynAckPacket(seq, p.seq+1)
+		channel <- newSynAckPacket(seq, p.seq+1)
 
-	p = <-channel
+		p = <-channel
 
-	if seq+1 != p.ack {
-		fmt.Println("Connection failed!")
-		return
+		if seq+1 != p.ack {
+			fmt.Println("Connection failed!")
+			return
+		}
+
+	for {
+
 	}
+}
 
-	fmt.Println("Server recieved:", p.data)
+func listen() {
+
+}
+
+func connect() {
+
+}
+
+func close() {
+
+}
+
+func send() {
+
 }
 
 func main() {
