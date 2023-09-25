@@ -20,9 +20,9 @@ func SynAckPacket(seq int, ack int) *packet {
 	return &p
 }
 
-func DataPacket(ack int, data string) *packet {
+func DataPacket(seq int, data string) *packet {
 	p := packet{}
-	p.ack = ack
+	p.seq = seq
 	p.data = data
 	return &p
 }
